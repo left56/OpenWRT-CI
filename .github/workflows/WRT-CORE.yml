@@ -169,6 +169,11 @@ jobs:
         run: |
           cd ./wrt/
 
+          # CONFIG_FEED_video=n in .config is too late: the feed's Kconfig
+          # files would already be imported by make defconfig.
+          # These feeds are not needed for the Xiaomi BE7000 firmware.
+          sed -i -E '/^src-git (video|pon_drivers|pon_userspace)([[:space:]]|$)/d' feeds.conf.default
+
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -179,6 +184,21 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Packages.sh
           $GITHUB_WORKSPACE/Scripts/Handles.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-i2c-tools.sh
+
+      - name: Prune unrelated Kconfig dependency cycles
+        run: |
+          cd ./wrt/
+
+          # These unused packages have broken upstream Kconfig cycles.
+          # Leave all packages actually selected in Config/GENERAL.txt alone.
+          rm -rf \
+            ./package/feeds/packages/fwknop \
+            ./feeds/packages/net/fwknop \
+            ./package/feeds/luci/luci-app-fwknopd \
+            ./feeds/luci/applications/luci-app-fwknopd \
+            ./package/feeds/packages/squeezelite \
+            ./feeds/packages/sound/squeezelite \
+            ./package/OpenWrt-nikki/mihomo-alpha
 
       - name: Custom Settings
         run: |
@@ -193,7 +213,15 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Settings.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-build-host.sh
 
-          make defconfig -j$(nproc)
+          # OpenWrt's make defconfig can return success even after Kconfig
+          # reports recursive dependency errors. Surface them as real failures.
+          set -o pipefail
+          make defconfig -j$(nproc) 2>&1 | tee "$RUNNER_TEMP/be7000-defconfig.log"
+          if grep -Eq 'error: recursive dependency detected!' "$RUNNER_TEMP/be7000-defconfig.log"; then
+            echo "::error::Kconfig still contains a recursive dependency"
+            exit 1
+          fi
+
           bash "$GITHUB_WORKSPACE/.github/scripts/verify-be7000-config.sh" .config
           make clean -j$(nproc)
 

@@ -19,7 +19,6 @@ required=(
   CONFIG_PACKAGE_mosdns=y
   CONFIG_KERNEL_DEBUG_INFO_BTF=y
   CONFIG_KERNEL_XDP_SOCKETS=y
-  CONFIG_DAED_USE_KERNEL_BTF=y
 )
 
 for setting in "${required[@]}"; do
@@ -43,6 +42,13 @@ if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
 fi
 if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
   echo "::error::luci-app-daede selected standalone dae instead of daed"
+  exit 1
+fi
+
+# The firmware itself provides BTF. The upstream daed package does not need
+# a detached vmlinux-btf package or an explicitly emitted Kconfig choice value.
+if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
+  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
   exit 1
 fi
 

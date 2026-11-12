@@ -2,11 +2,11 @@
 # Copyright (C) 2026 VIKINGYFY
 
 #CI项目
-name: QCB-ALL
+name: IPQ95XX-BE7000
 
 #CI计划
 on:
-  #自动编译：当Auto-Clean运行完成后
+  # 自动编译：仅当每日 Auto-Clean 成功后
   workflow_run:
     workflows: ["Auto-Clean"]
     types:
@@ -25,17 +25,20 @@ on:
         type: boolean
 
 #CI权限
-permissions: write-all
+permissions:
+  contents: write
+  actions: write
 
 #CI任务
 jobs:
   config:
-    name: ${{matrix.CONFIG}}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    name: Xiaomi BE7000 (non-ES)
     strategy:
       fail-fast: false
       #max-parallel: 3
       matrix:
-        CONFIG: [IPQ53XX, IPQ95XX]
+        CONFIG: [IPQ95XX]
         SOURCE: [VIKINGYFY/immortalwrt]
         BRANCH: [owrt]
 

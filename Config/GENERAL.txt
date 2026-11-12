@@ -1,5 +1,13 @@
-#科学插件调整
-CONFIG_PACKAGE_luci-app-homeproxy=y
+#代理及 DNS 插件：仅 daed 后端，不使用 dae 或 HomeProxy
+CONFIG_PACKAGE_luci-app-homeproxy=n
+CONFIG_PACKAGE_luci-app-daede=y
+CONFIG_PACKAGE_luci-app-daede_daed=y
+CONFIG_PACKAGE_luci-app-daede_dae=n
+CONFIG_PACKAGE_daed=y
+CONFIG_PACKAGE_dae=n
+CONFIG_DAED_USE_KERNEL_BTF=y
+CONFIG_PACKAGE_luci-app-mosdns=y
+CONFIG_PACKAGE_mosdns=y
 #增加插件
 CONFIG_PACKAGE_luci-app-autoreboot=y
 CONFIG_PACKAGE_luci-app-gecoosac=y
@@ -21,6 +29,11 @@ CONFIG_FEED_pon_userspace=n
 CONFIG_TARGET_MULTI_PROFILE=y
 CONFIG_TARGET_PER_DEVICE_ROOTFS=y
 CONFIG_TARGET_ROOTFS_INITRAMFS=n
+# daed 需要 eBPF CO-RE / XDP；关闭精简调试信息以生成 BTF
+CONFIG_KERNEL_DEBUG_INFO=y
+CONFIG_KERNEL_DEBUG_INFO_REDUCED=n
+CONFIG_KERNEL_DEBUG_INFO_BTF=y
+CONFIG_KERNEL_XDP_SOCKETS=y
 #内核调整
 CONFIG_PACKAGE_kmod-ata-ahci=y
 CONFIG_PACKAGE_kmod-ata-core=y

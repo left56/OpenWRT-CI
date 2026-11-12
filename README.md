@@ -44,11 +44,16 @@ https://drive.wrt.moe/uboot/mediatek
 
 # 固件简要说明
 
-固件每天早上5点自动编译。
+本 Fork 只编译 `VIKINGYFY/immortalwrt` 的 `owrt` 分支。
 
-固件信息里的时间为编译开始的时间，方便核对上游源码提交时间。
+- 构建目标：Qualcomm IPQ95XX / Xiaomi BE7000（非 ES），`qualcommbe-ipq95xx-xiaomi_be7000`。
+- 软件包：禁用 `luci-app-homeproxy`；启用 `luci-app-daede`（只选择 `daed` 后端）和 `luci-app-mosdns`。
+- 额外内核支持：BTF / XDP，用于 daed eBPF CO-RE。
+- 工作流：每日约 05:21（北京时间）通过 `Auto-Clean` 完成后触发 `IPQ95XX-BE7000`；也可以手动运行。
+- 测试工作流：`IPQ95XX-TEST` 默认仅验证并发布最终 `.config`；正式编译请用 `IPQ95XX-BE7000`。
+- 结果：Release 包含 BE7000 非 ES 的 factory UBI / sysupgrade 固件及配置文件（如构建成功）。
 
-MEDIATEK系列、QUALCOMMAX系列、ROCKCHIP系列、X86系列。
+固件信息里的时间为编译开始时间，便于核对上游源码提交。
 
 # 目录简要说明
 

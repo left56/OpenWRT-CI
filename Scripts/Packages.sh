@@ -66,9 +66,18 @@ UPDATE_PACKAGE "diskmanager" "4IceG/luci-app-mini-diskmanager" "main"
 UPDATE_PACKAGE "easytier" "EasyTier/luci-app-easytier" "main"
 UPDATE_PACKAGE "qmodem" "FUjr/QModem" "main"
 UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac miniupnpd sing-box luci-app-homeproxy luci-app-timewol luci-app-upnp luci-app-wolplus luci-app-wolultra"
+# viking 插件仓库自带 HomeProxy：彻底移除，避免进入自定义 package 扫描
+rm -rf ./package/packages/luci-app-homeproxy
 
 UPDATE_PACKAGE "diskman" "sbwml/luci-app-diskman" "main"
+# 包含 luci-app-daede、daed 和 dae 的构建定义；仅 daed 被 CONFIG 选中。
+# 保留源码仓库中的 dae/files 目录（luci-app-daede Makefile 引用该配置）。
+UPDATE_PACKAGE "daede" "kenzok8/openwrt-daede" "main"
+
+# MosDNS 已经在上游脚本中拉取；复用其 v5 分支
 UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
+# 为 daed 和 MosDNS 提供同一套 GeoIP / GeoSite 依赖
+UPDATE_PACKAGE "v2ray-geodata" "sbwml/v2ray-geodata" "master"
 UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"
 UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"
 UPDATE_PACKAGE "quickfile" "sbwml/luci-app-quickfile" "main"

@@ -193,7 +193,9 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Settings.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-build-host.sh
 
-          make defconfig -j$(nproc) && make clean -j$(nproc)
+          make defconfig -j$(nproc)
+          bash "$GITHUB_WORKSPACE/.github/scripts/verify-be7000-config.sh" .config
+          make clean -j$(nproc)
 
       - name: Prepare Rust Toolchain
         if: ${{ !inputs.WRT_TEST }}
@@ -287,11 +289,9 @@ jobs:
           tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
           files: ./wrt/upload/*.*
           body: |
-            这是个平台固件包，内含多个设备！
-            请注意选择你需要的设备固件！
-            不要问，刷就完事了！
-
-            全系带开源硬件加速，别问了！
+            本 Release 仅适用于 Xiaomi BE7000（非 ES）。
+            设备型号：qualcommbe-ipq95xx-xiaomi_be7000
+            刷入前请核对机器型号及固件类型。
 
             源码：${{env.WRT_REPO}}
             分支：${{env.WRT_BRANCH}}

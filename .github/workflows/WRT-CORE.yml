@@ -240,6 +240,7 @@ jobs:
           make download -j$(nproc)
 
       - name: Compile Firmware
+        id: compile-firmware
         if: ${{ !inputs.WRT_TEST }}
         run: |
           cd ./wrt/
@@ -247,6 +248,24 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/build-reports
           make -j$(nproc) BUILD_TIME_LOG="$GITHUB_WORKSPACE/build-reports/parallel.tsv" || \
             make -j1 V=s BUILD_TIME_LOG="$GITHUB_WORKSPACE/build-reports/serial.tsv"
+
+      - name: Analyze BE7000 UBI Layout
+        if: ${{ !inputs.WRT_TEST && steps.compile-firmware.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/wrt"
+          mapfile -t FACTORY_IMAGES < <(find ./bin/targets -type f -name '*xiaomi_be7000*factory*.ubi' | sort)
+          mapfile -t SYSUPGRADE_IMAGES < <(find ./bin/targets -type f -name '*xiaomi_be7000*sysupgrade*.bin' | sort)
+          if [[ "${#FACTORY_IMAGES[@]}" -ne 1 || "${#SYSUPGRADE_IMAGES[@]}" -ne 1 ]]; then
+            echo "::error::Expected exactly one BE7000 factory UBI and one sysupgrade image"
+            printf '%s\n' "${FACTORY_IMAGES[@]}" "${SYSUPGRADE_IMAGES[@]}"
+            exit 1
+          fi
+          python3 -m py_compile "$GITHUB_WORKSPACE/.github/scripts/analyze-be7000-ubi-layout.py"
+          python3 "$GITHUB_WORKSPACE/.github/scripts/analyze-be7000-ubi-layout.py" \
+            --factory-image "${FACTORY_IMAGES[0]}" \
+            --sysupgrade-image "${SYSUPGRADE_IMAGES[0]}" \
+            --report "$GITHUB_WORKSPACE/build-reports/firmware-layout.md"
 
       - name: Collect Build Reports
         if: ${{ !inputs.WRT_TEST && always() }}
@@ -295,7 +314,7 @@ jobs:
 
           if [[ "$WRT_TEST" != 'true' ]]; then
             echo "WRT_KVER=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^kernel - \K[\d\.]+' {} \;)" >> $GITHUB_ENV
-            echo "WRT_LIST=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^luci-(app|theme)[^ ]*' {} \; | tr '\n' ' ')" >> $GITHUB_ENV
+            echo "WRT_LIST=$(find ./bin/targets/ -type f -name "*.manifest" -exec grep -oP '^luci-(app|theme|i18n)[^ ]*' {} \; | tr '\n' ' ')" >> $GITHUB_ENV
 
             find ./bin/targets/ -iregex ".*\(buildinfo\|json\|sha256sums\|packages\)$" -exec rm -rf {} +
 
@@ -307,6 +326,11 @@ jobs:
             done
 
             find ./bin/targets/ -type f -exec mv -f {} ./upload/ \;
+
+            if [[ -f "$GITHUB_WORKSPACE/build-reports/firmware-layout.md" ]]; then
+              cp -f "$GITHUB_WORKSPACE/build-reports/firmware-layout.md" \
+                "./upload/Firmware-Layout-$WRT_CONFIG-$WRT_DATE.md"
+            fi
 
             make clean -j$(nproc)
           fi
@@ -336,6 +360,9 @@ jobs:
 
             内核版本：${{env.WRT_KVER}}
             插件列表：${{env.WRT_LIST}}
+
+            ### 固件布局与容量门禁
+            ${{ env.LAYOUT_RELEASE_SUMMARY || '本次未生成固件布局报告（例如仅配置验证）。' }}
 
   cache-rollover:
     name: Roll cache generations

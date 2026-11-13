@@ -141,27 +141,49 @@ def main():
         rootfs_lebs = volumes["rootfs"]["reserved_pebs"]
         table_data_lebs = volumes["rootfs_data"]["reserved_pebs"]
 
-        if kernel_lebs + rootfs_lebs >= DEVICE_VOLUME_LEB_BUDGET:
-            raise ValueError("Kernel + RootFS exceed the BE7000 named-volume LEB budget")
-        data_lebs = DEVICE_VOLUME_LEB_BUDGET - kernel_lebs - rootfs_lebs
-        if table_data_lebs > data_lebs:
-            raise ValueError(
-                f"rootfs_data table reservation {table_data_lebs} exceeds "
-                f"autoresize device capacity {data_lebs} LEBs"
+        # reserved_pebs in the volume table is the capacity required on-device.
+        # rootfs_data is autoresize, so only its final capacity is derived from
+        # the measured BE7000 user-volume budget.
+        kernel_rootfs_lebs = kernel_lebs + rootfs_lebs
+        data_lebs = DEVICE_VOLUME_LEB_BUDGET - kernel_rootfs_lebs
+        capacity_errors = []
+        if data_lebs <= 0:
+            capacity_errors.append(
+                f"Kernel + RootFS require {kernel_lebs} + {rootfs_lebs} = "
+                f"{kernel_rootfs_lebs} LEBs, but the BE7000 named-volume budget "
+                f"is {DEVICE_VOLUME_LEB_BUDGET} LEBs (excess {kernel_rootfs_lebs - DEVICE_VOLUME_LEB_BUDGET} LEBs). "
+                "No RootFS Data capacity remains."
+            )
+        elif table_data_lebs > data_lebs:
+            capacity_errors.append(
+                f"rootfs_data table reservation {table_data_lebs} LEBs exceeds "
+                f"autoresize capacity {data_lebs} LEBs."
             )
 
-        overlay_free = BASELINE_OVERLAY_FREE_MIB + (
-            data_lebs - BASELINE_DATA_LEBS
-        ) * (LEB_SIZE / MIB)
-        status = "PASS" if overlay_free >= MIN_OVERLAY_FREE_MIB else "FAIL"
+        overlay_free = None
+        if data_lebs > 0:
+            overlay_free = BASELINE_OVERLAY_FREE_MIB + (
+                data_lebs - BASELINE_DATA_LEBS
+            ) * (LEB_SIZE / MIB)
+            if overlay_free < MIN_OVERLAY_FREE_MIB:
+                capacity_errors.append(
+                    f"Estimated Overlay free space {overlay_free:.2f} MiB is below "
+                    f"the {MIN_OVERLAY_FREE_MIB:.2f} MiB minimum."
+                )
+        status = "PASS" if not capacity_errors else "FAIL"
 
         factory_bytes = args.factory_image.stat().st_size
         sysupgrade_bytes = args.sysupgrade_image.stat().st_size
         kernel_bytes = kernel_lebs * LEB_SIZE
         rootfs_bytes = rootfs_lebs * LEB_SIZE
         table_data_bytes = table_data_lebs * LEB_SIZE
-        data_bytes = data_lebs * LEB_SIZE
+        data_bytes = max(data_lebs, 0) * LEB_SIZE
         other_lebs = DEVICE_TOTAL_LEBS - DEVICE_VOLUME_LEB_BUDGET
+        overlay_free_text = (
+            f"{overlay_free:.2f} MiB" if overlay_free is not None
+            else "N/A (no RootFS Data capacity)"
+        )
+        capacity_error_text = "\n".join(f"- {error}" for error in capacity_errors) or "- None"
 
         summary = "\n".join([
             "| Metric | Result |",
@@ -171,13 +193,23 @@ def main():
             f"| Sysupgrade image | {mib(sysupgrade_bytes):.2f} MiB |",
             f"| Kernel volume | {mib(kernel_bytes):.2f} MiB ({kernel_lebs} LEBs) |",
             f"| RootFS volume | {mib(rootfs_bytes):.2f} MiB ({rootfs_lebs} LEBs) |",
-            f"| RootFS Data after autoresize | {mib(data_bytes):.2f} MiB ({data_lebs} LEBs) |",
-            f"| Estimated Overlay free space | **{overlay_free:.2f} MiB** |",
+            f"| Kernel + RootFS allocation | {kernel_rootfs_lebs} / {DEVICE_VOLUME_LEB_BUDGET} LEBs |",
+            f"| RootFS Data after autoresize | {mib(data_bytes):.2f} MiB ({max(data_lebs, 0)} LEBs) |",
+            f"| Estimated Overlay free space | **{overlay_free_text}** |",
         ])
         report = "\n".join([
             "# Xiaomi BE7000 Firmware Layout",
             "",
             f"**Capacity gate: {status}** — minimum estimated Overlay free space: {MIN_OVERLAY_FREE_MIB:.1f} MiB.",
+            "",
+            "## Capacity calculation",
+            "",
+            f"- Kernel volume table allocation: {kernel_lebs} LEBs ({mib(kernel_bytes):.2f} MiB); physical PEBs in factory image: {physical['kernel']}.",
+            f"- RootFS volume table allocation: {rootfs_lebs} LEBs ({mib(rootfs_bytes):.2f} MiB); physical PEBs in factory image: {physical['rootfs']}.",
+            f"- Combined Kernel + RootFS: **{kernel_rootfs_lebs} / {DEVICE_VOLUME_LEB_BUDGET} LEBs**.",
+            f"- RootFS Data table initial reservation: {table_data_lebs} LEBs.",
+            f"- RootFS Data after autoresize: {max(data_lebs, 0)} LEBs.",
+            f"- Capacity errors: {capacity_error_text}.",
             "",
             "## Device UBI geometry",
             "",
@@ -207,8 +239,8 @@ def main():
             "",
             "## Post-flash Overlay estimate",
             "",
-            f"- RootFS Data after autoresize: **{mib(data_bytes):.2f} MiB** ({data_lebs} LEBs).",
-            f"- Estimated Overlay free space: **{overlay_free:.2f} MiB**.",
+            f"- RootFS Data after autoresize: **{mib(data_bytes):.2f} MiB** ({max(data_lebs, 0)} LEBs).",
+            f"- Estimated Overlay free space: **{overlay_free_text}**.",
             f"- Minimum allowed Overlay free space: **{MIN_OVERLAY_FREE_MIB:.2f} MiB**.",
             "- Baseline: 154 RootFS Data LEBs corresponded to 13.4 MiB free on the supplied live device. Each extra RootFS Data LEB changes the estimate by one LEB. UBIFS metadata and runtime writes can affect final df output.",
             "",
@@ -225,13 +257,17 @@ def main():
             "LAYOUT_KERNEL_LEBS": str(kernel_lebs),
             "LAYOUT_ROOTFS_LEBS": str(rootfs_lebs),
             "LAYOUT_ROOTFS_DATA_TABLE_LEBS": str(table_data_lebs),
-            "LAYOUT_ROOTFS_DATA_LEBS": str(data_lebs),
-            "LAYOUT_OVERLAY_AVAILABLE_MIB": f"{overlay_free:.2f}",
+            "LAYOUT_ROOTFS_DATA_LEBS": str(max(data_lebs, 0)),
+            "LAYOUT_KERNEL_ROOTFS_TOTAL_LEBS": str(kernel_rootfs_lebs),
+            "LAYOUT_KERNEL_PHYSICAL_PEBS": str(physical["kernel"]),
+            "LAYOUT_ROOTFS_PHYSICAL_PEBS": str(physical["rootfs"]),
+            "LAYOUT_OVERLAY_AVAILABLE_MIB": f"{overlay_free:.2f}" if overlay_free is not None else "N/A",
         }
         write_env(args.github_env, values, summary)
         print(report)
         if status == "FAIL":
-            print(f"::error::BE7000 Overlay estimate {overlay_free:.2f} MiB is below {MIN_OVERLAY_FREE_MIB:.2f} MiB")
+            for error in capacity_errors:
+                print(f"::error::{error}")
             return 1
         print(f"::notice title=BE7000 capacity gate::PASS - estimated Overlay free space {overlay_free:.2f} MiB")
         return 0

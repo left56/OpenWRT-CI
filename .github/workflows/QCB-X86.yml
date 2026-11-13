@@ -1,0 +1,31 @@
+name: X86_64
+on:
+  workflow_run:
+    workflows: ["Auto-Clean"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      TEST:
+        description: "仅验证配置"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  actions: write
+jobs:
+  build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    name: x86_64 generic (ext4 / 1 GiB)
+    uses: ./.github/workflows/WRT-CORE.yml
+    with:
+      WRT_CONFIG: X86
+      WRT_THEME: vantage
+      WRT_NAME: OWRT-X86
+      WRT_SSID: OWRT
+      WRT_WORD: 12345678
+      WRT_IP: 192.168.10.1
+      WRT_PW: 无
+      WRT_REPO: https://github.com/VIKINGYFY/immortalwrt.git
+      WRT_BRANCH: owrt
+      WRT_SOURCE: VIKINGYFY/immortalwrt
+      WRT_TEST: ${{ inputs.TEST || false }}

@@ -84,7 +84,7 @@ jobs:
 
           sudo apt-get install -y --no-install-recommends \
             bc bison build-essential bzip2 ca-certificates ccache clang \
-            cmake cpio curl device-tree-compiler dos2unix file flex \
+            cmake cpio curl device-tree-compiler dos2unix file flex gdisk \
             g++-multilib gawk gcc-multilib genisoimage gettext git jq \
             libbpf-dev libclang-dev libdw-dev libelf-dev libncurses-dev libssl-dev lld \
             llvm ninja-build patch perl pkgconf python3 python3-cryptography \
@@ -222,7 +222,16 @@ jobs:
             exit 1
           fi
 
-          bash "$GITHUB_WORKSPACE/.github/scripts/verify-be7000-config.sh" .config
+          if [[ "$WRT_CONFIG" == "IPQ95XX" ]]; then
+            bash "$GITHUB_WORKSPACE/.github/scripts/verify-be7000-config.sh" .config
+          elif [[ "$WRT_CONFIG" == "X86" ]]; then
+            grep -Fxq "CONFIG_TARGET_x86_64=y" .config
+            grep -Fxq "CONFIG_TARGET_ROOTFS_EXT4FS=y" .config
+            grep -Fxq "CONFIG_TARGET_ROOTFS_PARTSIZE=895" .config
+            for pkg in caddy netbird frr frr-bgpd frr-pythontools frr-staticd frr-watchfrr frr-zebra; do grep -Fxq "CONFIG_PACKAGE_${pkg}=y" .config; done
+          else
+            echo "::error::Unsupported target config $WRT_CONFIG"; exit 1
+          fi
           make clean -j$(nproc)
 
       - name: Prepare Rust Toolchain
@@ -250,7 +259,7 @@ jobs:
             make -j1 V=s BUILD_TIME_LOG="$GITHUB_WORKSPACE/build-reports/serial.tsv"
 
       - name: Analyze BE7000 UBI Layout
-        if: ${{ !inputs.WRT_TEST && steps.compile-firmware.outcome == 'success' }}
+        if: ${{ !inputs.WRT_TEST && inputs.WRT_CONFIG == 'IPQ95XX' && steps.compile-firmware.outcome == 'success' }}
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE/wrt"

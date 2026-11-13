@@ -216,12 +216,9 @@ jobs:
           # Disable Samba4 only for BE7000; x86_64 retains the shared selection.
           if [[ "$WRT_CONFIG" == "IPQ95XX" ]]; then
             sed -i -E '/^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|samba4-libs|luci-i18n-samba4-zh-cn)=/d' .config
-            cat >> .config <<'BE7000_NO_SAMBA'
-CONFIG_PACKAGE_luci-app-samba4=n
-CONFIG_PACKAGE_samba4-server=n
-CONFIG_PACKAGE_samba4-libs=n
-CONFIG_PACKAGE_luci-i18n-samba4-zh-cn=n
-BE7000_NO_SAMBA
+            for pkg in luci-app-samba4 samba4-server samba4-libs luci-i18n-samba4-zh-cn; do
+              printf "CONFIG_PACKAGE_%s=n\n" "$pkg" >> .config
+            done
           fi
 
           # OpenWrt's make defconfig can return success even after Kconfig

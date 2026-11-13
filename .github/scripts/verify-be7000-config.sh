@@ -20,6 +20,10 @@ required=(
   CONFIG_PACKAGE_easytier-noweb=y
   CONFIG_PACKAGE_luci-app-easytier=y
   CONFIG_PACKAGE_luci-i18n-easytier-zh-cn=y
+  CONFIG_PACKAGE_nlbwmon=y
+  CONFIG_PACKAGE_luci-app-nlbwmon=y
+  CONFIG_PACKAGE_luci-i18n-nlbwmon-zh-cn=y
+  CONFIG_PACKAGE_kmod-nf-conntrack-netlink=y
   CONFIG_KERNEL_DEBUG_INFO_BTF=y
   CONFIG_KERNEL_XDP_SOCKETS=y
 )
@@ -41,7 +45,10 @@ fi
 
 for package_makefile in \
   package/luci-app-easytier/easytier-noweb/Makefile \
-  package/luci-app-easytier/luci-app-easytier/Makefile; do
+  package/luci-app-easytier/luci-app-easytier/Makefile \
+  feeds/packages/net/nlbwmon/Makefile \
+  feeds/luci/applications/luci-app-nlbwmon/Makefile \
+  feeds/luci/applications/luci-app-nlbwmon/po/zh_Hans/nlbwmon.po; do
   if [[ ! -f "$package_makefile" ]]; then
     echo "::error::EasyTier package source is missing: $package_makefile"
     exit 1
@@ -69,7 +76,7 @@ if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
   exit 1
 fi
 
-printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, EasyTier-noweb, Chinese LuCI, BTF + XDP.\n'
+printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, EasyTier-noweb, nlbwmon, Chinese LuCI, BTF + XDP.\n'
  "$CONFIG"; then
   echo "::error::HomeProxy or standalone dae was selected unexpectedly"
   exit 1

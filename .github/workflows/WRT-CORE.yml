@@ -213,6 +213,17 @@ jobs:
           $GITHUB_WORKSPACE/Scripts/Settings.sh
           $GITHUB_WORKSPACE/.github/scripts/prepare-build-host.sh
 
+          # Disable Samba4 only for BE7000; x86_64 retains the shared selection.
+          if [[ "$WRT_CONFIG" == "IPQ95XX" ]]; then
+            sed -i -E '/^CONFIG_PACKAGE_(luci-app-samba4|samba4-server|samba4-libs|luci-i18n-samba4-zh-cn)=/d' .config
+            cat >> .config <<'BE7000_NO_SAMBA'
+CONFIG_PACKAGE_luci-app-samba4=n
+CONFIG_PACKAGE_samba4-server=n
+CONFIG_PACKAGE_samba4-libs=n
+CONFIG_PACKAGE_luci-i18n-samba4-zh-cn=n
+BE7000_NO_SAMBA
+          fi
+
           # OpenWrt's make defconfig can return success even after Kconfig
           # reports recursive dependency errors. Surface them as real failures.
           set -o pipefail
@@ -233,6 +244,12 @@ jobs:
             echo "::error::Unsupported target config $WRT_CONFIG"; exit 1
           fi
           make clean -j$(nproc)
+
+      - name: Enable UPX -9 for BE7000 EasyTier
+        if: ${{ !inputs.WRT_TEST && inputs.WRT_CONFIG == 'IPQ95XX' }}
+        run: |
+          cd ./wrt/
+          bash "$GITHUB_WORKSPACE/.github/scripts/enable-be7000-easytier-upx.sh"
 
       - name: Prepare Rust Toolchain
         if: ${{ !inputs.WRT_TEST }}

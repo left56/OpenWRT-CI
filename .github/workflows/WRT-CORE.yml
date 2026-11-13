@@ -236,7 +236,7 @@ jobs:
             grep -Fxq "CONFIG_TARGET_x86_64=y" .config
             grep -Fxq "CONFIG_TARGET_ROOTFS_EXT4FS=y" .config
             grep -Fxq "CONFIG_TARGET_ROOTFS_PARTSIZE=895" .config
-            for pkg in caddy netbird frr frr-bgpd frr-pythontools frr-staticd frr-watchfrr frr-zebra; do grep -Fxq "CONFIG_PACKAGE_${pkg}=y" .config; done
+            for pkg in netbird frr frr-bgpd frr-pythontools frr-staticd frr-watchfrr frr-zebra; do grep -Fxq "CONFIG_PACKAGE_${pkg}=y" .config; done
           else
             echo "::error::Unsupported target config $WRT_CONFIG"; exit 1
           fi

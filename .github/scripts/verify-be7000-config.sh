@@ -53,7 +53,11 @@ for package_makefile in \
 done
 
 # Reject unwanted alternatives.
-if grep -Eq '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y
+if grep -Eq '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y$' "$CONFIG"; then
+  echo "::error::EasyTier must not be selected for BE7000"
+  grep -E '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y$' "$CONFIG"
+  exit 1
+fi
 
 if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
   echo "::error::HomeProxy or standalone dae was selected unexpectedly"
@@ -72,45 +76,3 @@ if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
 fi
 
 printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, no EasyTier, nlbwmon, Chinese LuCI, BTF + XDP.\n'
- "$CONFIG"; then
-  echo "::error::EasyTier must not be selected for BE7000"
-  grep -E '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y
-
-if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
-  echo "::error::HomeProxy or standalone dae was selected unexpectedly"
-  exit 1
-fi
-
-if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
-  echo "::error::luci-app-daede selected standalone dae instead of daed"
-  exit 1
-fi
-
-# The firmware provides BTF itself; do not select a detached BTF image.
-if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
-  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
-  exit 1
-fi
-
-printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, EasyTier-noweb, nlbwmon, Chinese LuCI, BTF + XDP.\n'
- "$CONFIG"
-  exit 1
-fi
-
-if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
-  echo "::error::HomeProxy or standalone dae was selected unexpectedly"
-  exit 1
-fi
-
-if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
-  echo "::error::luci-app-daede selected standalone dae instead of daed"
-  exit 1
-fi
-
-# The firmware provides BTF itself; do not select a detached BTF image.
-if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
-  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
-  exit 1
-fi
-
-printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, EasyTier-noweb, nlbwmon, Chinese LuCI, BTF + XDP.\n'

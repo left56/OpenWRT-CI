@@ -22,7 +22,11 @@ path = Path(sys.argv[1])
 text = path.read_text()
 old = "define Build/Compile\nendef\n"
 new = ("define Build/Compile\n"
-       "\t$(TOPDIR)/.ci-tools/upx -9 $(PKG_BUILD_DIR)/easytier-core $(PKG_BUILD_DIR)/easytier-cli\n"
+       "\t@set -e; for binary in easytier-core easytier-cli; do "
+       "file=\"$(PKG_BUILD_DIR)/$binary\"; "
+       "if $(TOPDIR)/.ci-tools/upx -l \"$file\" >/dev/null 2>&1; then "
+       "echo \"EasyTier $binary: already UPX-packed, skip\"; "
+       "else $(TOPDIR)/.ci-tools/upx -9 \"$file\"; fi; done\n"
        "endef\n")
 if text.count(old) != 1:
     raise SystemExit("Unexpected EasyTier Makefile: cannot install UPX -9 hook")

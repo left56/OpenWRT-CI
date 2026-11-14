@@ -242,12 +242,6 @@ jobs:
           fi
           make clean -j$(nproc)
 
-      - name: Enable UPX -9 for BE7000 EasyTier
-        if: ${{ !inputs.WRT_TEST && inputs.WRT_CONFIG == 'IPQ95XX' }}
-        run: |
-          cd ./wrt/
-          bash "$GITHUB_WORKSPACE/.github/scripts/enable-be7000-easytier-upx.sh"
-
       - name: Prepare Rust Toolchain
         if: ${{ !inputs.WRT_TEST }}
         run: |

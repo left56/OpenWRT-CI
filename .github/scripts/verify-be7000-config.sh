@@ -24,9 +24,6 @@ CONFIG_PACKAGE_luci-app-daede_daed=y
 CONFIG_PACKAGE_daed=y
 CONFIG_PACKAGE_luci-app-mosdns=y
 CONFIG_PACKAGE_mosdns=y
-CONFIG_PACKAGE_easytier-noweb=y
-CONFIG_PACKAGE_luci-app-easytier=y
-CONFIG_PACKAGE_luci-i18n-easytier-zh-cn=y
 CONFIG_PACKAGE_nlbwmon=y
 CONFIG_PACKAGE_luci-app-nlbwmon=y
 CONFIG_PACKAGE_luci-i18n-nlbwmon-zh-cn=y
@@ -46,8 +43,6 @@ fi
 
 # Fail early if a custom or feed package source was not installed.
 for package_makefile in \
-  package/luci-app-easytier/easytier-noweb/Makefile \
-  package/luci-app-easytier/luci-app-easytier/Makefile \
   feeds/packages/net/nlbwmon/Makefile \
   feeds/luci/applications/luci-app-nlbwmon/Makefile \
   feeds/luci/applications/luci-app-nlbwmon/po/zh_Hans/nlbwmon.po; do
@@ -58,8 +53,47 @@ for package_makefile in \
 done
 
 # Reject unwanted alternatives.
-if grep -Fxq 'CONFIG_PACKAGE_easytier=y' "$CONFIG"; then
-  echo "::error::The Web-enabled EasyTier core must not be selected; use easytier-noweb"
+if grep -Eq '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y
+
+if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
+  echo "::error::HomeProxy or standalone dae was selected unexpectedly"
+  exit 1
+fi
+
+if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
+  echo "::error::luci-app-daede selected standalone dae instead of daed"
+  exit 1
+fi
+
+# The firmware provides BTF itself; do not select a detached BTF image.
+if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
+  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
+  exit 1
+fi
+
+printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, no EasyTier, nlbwmon, Chinese LuCI, BTF + XDP.\n'
+ "$CONFIG"; then
+  echo "::error::EasyTier must not be selected for BE7000"
+  grep -E '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y
+
+if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
+  echo "::error::HomeProxy or standalone dae was selected unexpectedly"
+  exit 1
+fi
+
+if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
+  echo "::error::luci-app-daede selected standalone dae instead of daed"
+  exit 1
+fi
+
+# The firmware provides BTF itself; do not select a detached BTF image.
+if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
+  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
+  exit 1
+fi
+
+printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, EasyTier-noweb, nlbwmon, Chinese LuCI, BTF + XDP.\n'
+ "$CONFIG"
   exit 1
 fi
 

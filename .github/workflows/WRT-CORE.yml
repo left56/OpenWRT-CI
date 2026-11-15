@@ -219,6 +219,21 @@ jobs:
             for pkg in luci-app-samba4 samba4-server samba4-libs luci-i18n-samba4-zh-cn; do
               printf "CONFIG_PACKAGE_%s=n\n" "$pkg" >> .config
             done
+
+            # Apply target-specific package exclusions last (after GENERAL/PRIVATE).
+            exclusions="$GITHUB_WORKSPACE/Config/IPQ95XX-REMOVE.txt"
+            if [[ ! -f "$exclusions" ]]; then echo "::error::Missing $exclusions"; exit 1; fi
+            while IFS= read -r setting || [[ -n "$setting" ]]; do
+              [[ -z "$setting" || "$setting" == \#* ]] && continue
+              if [[ "$setting" =~ ^CONFIG_PACKAGE_([[:alnum:]_-]+)=n$ ]]; then
+                pkg="${BASH_REMATCH[1]}"
+                sed -i "/^CONFIG_PACKAGE_${pkg}=/d" .config
+                printf '%s\n' "$setting" >> .config
+              else
+                echo "::error::Invalid BE7000 exclusion: $setting"
+                exit 1
+              fi
+            done < "$exclusions"
           fi
 
           # OpenWrt's make defconfig can return success even after Kconfig

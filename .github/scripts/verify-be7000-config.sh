@@ -52,6 +52,25 @@ for package_makefile in \
   fi
 done
 
+# Validate the BE7000-only exclusion list against the resolved Kconfig.
+EXCLUSIONS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/Config/IPQ95XX-REMOVE.txt"
+if [[ ! -f "$EXCLUSIONS" ]]; then
+  echo "::error::Missing BE7000 exclusion list: $EXCLUSIONS"
+  exit 1
+fi
+while IFS= read -r setting || [[ -n "$setting" ]]; do
+  [[ -z "$setting" || "$setting" == \#* ]] && continue
+  if [[ ! "$setting" =~ ^CONFIG_PACKAGE_([[:alnum:]_-]+)=n$ ]]; then
+    echo "::error::Invalid BE7000 exclusion: $setting"
+    exit 1
+  fi
+  pkg="${BASH_REMATCH[1]}"
+  if grep -Eq "^CONFIG_PACKAGE_${pkg}=[ym]$" "$CONFIG"; then
+    echo "::error::Excluded BE7000 package selected after defconfig: $pkg"
+    exit 1
+  fi
+done < "$EXCLUSIONS"
+
 # Reject unwanted alternatives.
 if grep -Eq '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y$' "$CONFIG"; then
   echo "::error::EasyTier must not be selected for BE7000"

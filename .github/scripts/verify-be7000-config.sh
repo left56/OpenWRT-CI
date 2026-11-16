@@ -19,9 +19,8 @@ done <<'REQUIRED'
 CONFIG_TARGET_qualcommbe=y
 CONFIG_TARGET_qualcommbe_ipq95xx=y
 CONFIG_TARGET_DEVICE_qualcommbe_ipq95xx_DEVICE_xiaomi_be7000=y
-CONFIG_PACKAGE_luci-app-daede=y
-CONFIG_PACKAGE_luci-app-daede_daed=y
-CONFIG_PACKAGE_daed=y
+CONFIG_PACKAGE_honk=y
+CONFIG_PACKAGE_luci-app-honk=y
 CONFIG_PACKAGE_luci-app-mosdns=y
 CONFIG_PACKAGE_mosdns=y
 CONFIG_PACKAGE_nlbwmon=y
@@ -43,6 +42,8 @@ fi
 
 # Fail early if a custom or feed package source was not installed.
 for package_makefile in \
+  package/openwrt-honk/honk/Makefile \
+  package/openwrt-honk/luci-app-honk/Makefile \
   feeds/packages/net/nlbwmon/Makefile \
   feeds/luci/applications/luci-app-nlbwmon/Makefile \
   feeds/luci/applications/luci-app-nlbwmon/po/zh_Hans/nlbwmon.po; do
@@ -78,20 +79,15 @@ if grep -Eq '^CONFIG_PACKAGE_[^=]*easytier[^=]*=y$' "$CONFIG"; then
   exit 1
 fi
 
-if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae)=y$' "$CONFIG"; then
-  echo "::error::HomeProxy or standalone dae was selected unexpectedly"
+if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae|daed|luci-app-daede(_dae|_daed)?)=y$' "$CONFIG"; then
+  echo "::error::Legacy daed/dae/HomeProxy packages were selected unexpectedly"
   exit 1
 fi
 
-if grep -Fxq 'CONFIG_PACKAGE_luci-app-daede_dae=y' "$CONFIG"; then
-  echo "::error::luci-app-daede selected standalone dae instead of daed"
+# The firmware provides BTF itself; do not embed a separate BTF image.
+if grep -Fxq 'CONFIG_PACKAGE_vmlinux-btf=y' "$CONFIG"; then
+  echo "::error::Unexpected external vmlinux-btf package with built-in kernel BTF"
   exit 1
 fi
 
-# The firmware provides BTF itself; do not select a detached BTF image.
-if grep -Fxq 'CONFIG_DAED_USE_VMLINUX_BTF=y' "$CONFIG"; then
-  echo "::error::Unexpected detached vmlinux-btf selection with built-in kernel BTF"
-  exit 1
-fi
-
-printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), daed-only, MosDNS, no EasyTier, nlbwmon, Chinese LuCI, BTF + XDP.\n'
+printf 'Verified: IPQ95XX Xiaomi BE7000 (non-ES), honk + LuCI, MosDNS, no EasyTier, nlbwmon, Chinese LuCI, BTF + XDP.\n'

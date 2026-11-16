@@ -72,13 +72,17 @@ UPDATE_PACKAGE "viking" "VIKINGYFY/packages" "main" "" "axonhub gecoosac miniupn
 rm -rf ./package/packages/luci-app-homeproxy
 
 UPDATE_PACKAGE "diskman" "sbwml/luci-app-diskman" "main"
-# 包含 luci-app-daede、daed 和 dae 的构建定义；仅 daed 被 CONFIG 选中。
-# 保留源码仓库中的 dae/files 目录（luci-app-daede Makefile 引用该配置）。
-UPDATE_PACKAGE "daede" "kenzok8/openwrt-daede" "main"
+# honk + luci-app-honk 位于同一仓库，源码包会从其固定的 Release 资产下载。
+# 不再拉取归档的 daed；两个构建目标统一使用 honk。
+UPDATE_PACKAGE "honk" "kenzok8/openwrt-honk" "main" "" "luci-app-honk luci-app-daede"
+if [[ ! -f ./package/openwrt-honk/honk/Makefile || ! -f ./package/openwrt-honk/luci-app-honk/Makefile ]]; then
+	echo "::error::Missing honk or luci-app-honk package recipe from kenzok8/openwrt-honk"
+	exit 1
+fi
 
 # MosDNS 已经在上游脚本中拉取；复用其 v5 分支
 UPDATE_PACKAGE "mosdns" "sbwml/luci-app-mosdns" "v5" "" "v2dat"
-# 为 daed 和 MosDNS 提供同一套 GeoIP / GeoSite 依赖
+# 为 honk 和 MosDNS 提供同一套 GeoIP / GeoSite 依赖
 UPDATE_PACKAGE "v2ray-geodata" "sbwml/v2ray-geodata" "master"
 UPDATE_PACKAGE "openlist2" "sbwml/luci-app-openlist2" "main"
 UPDATE_PACKAGE "qbittorrent" "sbwml/luci-app-qbittorrent" "master" "" "qt6base qt6tools rblibtorrent"

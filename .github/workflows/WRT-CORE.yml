@@ -251,7 +251,14 @@ jobs:
             grep -Fxq "CONFIG_TARGET_x86_64=y" .config
             grep -Fxq "CONFIG_TARGET_ROOTFS_EXT4FS=y" .config
             grep -Fxq "CONFIG_TARGET_ROOTFS_PARTSIZE=895" .config
-            for pkg in netbird frr frr-bgpd frr-pythontools frr-staticd frr-watchfrr frr-zebra; do grep -Fxq "CONFIG_PACKAGE_${pkg}=y" .config; done
+            grep -Fxq "CONFIG_KERNEL_DEBUG_INFO_BTF=y" .config
+            for pkg in honk luci-app-honk netbird frr frr-bgpd frr-pythontools frr-staticd frr-watchfrr frr-zebra; do
+              grep -Fxq "CONFIG_PACKAGE_${pkg}=y" .config
+            done
+            if grep -Eq '^CONFIG_PACKAGE_(luci-app-homeproxy|dae|daed|luci-app-daede(_dae|_daed)?)=y$' .config; then
+              echo "::error::Legacy daed/dae/HomeProxy packages were selected unexpectedly on x86_64"
+              exit 1
+            fi
           else
             echo "::error::Unsupported target config $WRT_CONFIG"; exit 1
           fi
@@ -367,34 +374,67 @@ jobs:
             make clean -j$(nproc)
           fi
 
+      - name: Prepare Release Notes
+        run: |
+          set -euo pipefail
+          NOTES="$GITHUB_WORKSPACE/release-notes.md"
+          case "$WRT_CONFIG" in
+            IPQ95XX)
+              {
+                echo "本 Release 仅适用于 Xiaomi BE7000（非 ES）。"
+                echo "设备型号：qualcommbe-ipq95xx-xiaomi_be7000"
+                echo "刷入前请核对机器型号及固件类型。"
+                echo ""
+                echo "WIFI名称：$WRT_SSID"
+                echo "WIFI密码：$WRT_WORD"
+              } > "$NOTES"
+              ;;
+            X86)
+              {
+                echo "本 Release 适用于 x86_64 通用 PC / 虚拟机，不适用于 Xiaomi BE7000。"
+                echo "系统架构：x86_64"
+                echo "镜像格式：ext4 根文件系统，1 GiB 虚拟磁盘；支持 BIOS / UEFI、QCOW2 / VMDK。"
+                echo "部署前请核对镜像格式、启动方式与磁盘容量。"
+              } > "$NOTES"
+              ;;
+            *)
+              echo "::error::Unsupported release target: $WRT_CONFIG"
+              exit 1
+              ;;
+          esac
+
+          {
+            echo ""
+            echo "源码：$WRT_REPO"
+            echo "分支：$WRT_BRANCH"
+            echo "提交：$WRT_HASH"
+            echo ""
+            echo "配置：$WRT_CONFIG"
+            echo "平台：$WRT_TARGET"
+            echo ""
+            echo "登录地址：$WRT_IP"
+            echo "登录密码：$WRT_PW"
+            echo ""
+            echo "内核版本：$WRT_KVER"
+            echo "插件列表：$WRT_LIST"
+          } >> "$NOTES"
+
+          if [[ "$WRT_TEST" == "true" ]]; then
+            printf '\n本次仅验证配置，未编译固件镜像。\n' >> "$NOTES"
+          elif [[ "$WRT_CONFIG" == "IPQ95XX" ]]; then
+            {
+              echo ""
+              echo "### 固件布局与容量门禁"
+              echo "UBI 容量分析见附件 Firmware-Layout-$WRT_CONFIG-$WRT_DATE.md。"
+            } >> "$NOTES"
+          fi
+
       - name: Release Firmware
         uses: softprops/action-gh-release@master
         with:
           tag_name: ${{env.WRT_CONFIG}}-${{env.WRT_INFO}}-${{env.WRT_BRANCH}}-${{env.WRT_DATE}}
           files: ./wrt/upload/*.*
-          body: |
-            本 Release 仅适用于 Xiaomi BE7000（非 ES）。
-            设备型号：qualcommbe-ipq95xx-xiaomi_be7000
-            刷入前请核对机器型号及固件类型。
-
-            源码：${{env.WRT_REPO}}
-            分支：${{env.WRT_BRANCH}}
-            提交：${{env.WRT_HASH}}
-
-            配置：${{env.WRT_CONFIG}}
-            平台：${{env.WRT_TARGET}}
-
-            登录地址：${{env.WRT_IP}}
-            登录密码：${{env.WRT_PW}}
-
-            WIFI名称：${{env.WRT_SSID}}
-            WIFI密码：${{env.WRT_WORD}}
-
-            内核版本：${{env.WRT_KVER}}
-            插件列表：${{env.WRT_LIST}}
-
-            ### 固件布局与容量门禁
-            ${{ env.LAYOUT_RELEASE_SUMMARY || '本次未生成固件布局报告（例如仅配置验证）。' }}
+          body_path: ./release-notes.md
 
   cache-rollover:
     name: Roll cache generations

@@ -391,7 +391,7 @@ jobs:
               ;;
             X86)
               {
-                echo "本 Release 适用于 x86_64 通用 PC / 虚拟机，不适用于 Xiaomi BE7000。"
+                echo "本 Release 仅适用于 x86_64 通用 PC / 虚拟机。"
                 echo "系统架构：x86_64"
                 echo "镜像格式：ext4 根文件系统，1 GiB 虚拟磁盘；支持 BIOS / UEFI、QCOW2 / VMDK。"
                 echo "部署前请核对镜像格式、启动方式与磁盘容量。"

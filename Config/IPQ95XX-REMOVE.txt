@@ -1,9 +1,4 @@
 # BE7000 only - applied after GENERAL.txt and other build customizations.
-# Gecoos AP controller
-CONFIG_PACKAGE_gecoosac=n
-CONFIG_PACKAGE_luci-app-gecoosac=n
-CONFIG_PACKAGE_luci-i18n-gecoosac-zh-cn=n
-
 # Disk management LuCI and Btrfs
 CONFIG_PACKAGE_luci-app-partexp=n
 CONFIG_PACKAGE_luci-app-mini-diskmanager=n

@@ -45,7 +45,7 @@ fi
 # 所有平台统一禁用集客 AC；放在平台、私有和手动配置之后，确保 n 生效。
 for pkg in gecoosac luci-app-gecoosac luci-i18n-gecoosac-zh-cn; do
 	sed -i "/^CONFIG_PACKAGE_${pkg}=/d" ./.config
-	printf 'CONFIG_PACKAGE_%s=n\\n' "$pkg" >> ./.config
+	printf 'CONFIG_PACKAGE_%s=n\n' "$pkg" >> ./.config
 done
 
 #高通平台调整

@@ -1,0 +1,29 @@
+diff --git a/crates/honk-outbound/src/reality.rs b/crates/honk-outbound/src/reality.rs
+--- a/crates/honk-outbound/src/reality.rs
++++ b/crates/honk-outbound/src/reality.rs
+@@ -36,6 +36,9 @@ use crate::tls::TlsStream;
+ const HKDF_INFO: &[u8] = b"REALITY";
+ const SESSION_ID_OFFSET: usize = 39;
+ const SESSION_ID_LEN: usize = 32;
++/// Advertised REALITY client version for compatibility with Xray v26.7.11+.
++/// This is a compatibility marker, not the Honk implementation version.
++const REALITY_CLIENT_VERSION: [u8; 3] = [26, 11, 9];
+ 
+ /// Parsed REALITY handshake parameters for one node.
+ #[derive(Clone, Debug)]
+@@ -195,7 +198,7 @@ fn reality_session_id(
+ 
+     let mut plain = [0u8; 16];
+-    plain[..3].copy_from_slice(&[1, 3, 3]); // client version, reality.go
++    plain[..3].copy_from_slice(&REALITY_CLIENT_VERSION);
+     plain[4..8].copy_from_slice(&timestamp.to_be_bytes());
+     plain[8..].copy_from_slice(short_id);
+ 
+@@ -423,7 +426,7 @@ mod tests {
+         );
+         assert_eq!(
+             session_id.as_slice(),
+-            unhex("7cfcdadbd3a5640bceef2afc7951caf671f7a737b2ba3f30eadb2d32148c542d").as_slice()
++            unhex("67f4d0dbd3a5640bceef2afc7951caf66af20daf4c5eb20b7ad0fb10057688d1").as_slice()
+         );
+     }

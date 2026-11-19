@@ -87,7 +87,7 @@ jobs:
             cmake cpio curl device-tree-compiler dos2unix file flex gdisk \
             g++-multilib gawk gcc-multilib genisoimage gettext git jq \
             libbpf-dev libclang-dev libdw-dev libelf-dev libncurses-dev libssl-dev lld \
-            llvm ninja-build patch perl pkgconf python3 python3-cryptography \
+            llvm ninja-build patch perl pkgconf python3 python3-cryptography ripgrep \
             python3-dev python3-packaging python3-pyelftools python3-setuptools qemu-utils rsync swig \
             unzip wget xz-utils zlib1g-dev zstd
 
@@ -154,6 +154,7 @@ jobs:
             ./wrt/.ccache
             ./wrt/staging_dir/host*
             ./wrt/staging_dir/tool*
+            ./wrt/package/openwrt-honk/.cache/cargo
 
       - name: Prepare Restored Build Cache
         if: ${{ !inputs.WRT_TEST && steps.cache-restore.outputs.cache-matched-key != '' }}
@@ -271,6 +272,18 @@ jobs:
 
           $GITHUB_WORKSPACE/.github/scripts/prepare-rust.sh
 
+      - name: Install Zig for Honk cross-compilation
+        if: ${{ !inputs.WRT_TEST }}
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: 0.14.1
+
+      - name: Build Honk core with REALITY version compatibility patch
+        if: ${{ !inputs.WRT_TEST }}
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/.github/scripts/build-honk-core.sh" "$GITHUB_WORKSPACE/wrt"
+
       - name: Download Packages
         if: ${{ !inputs.WRT_TEST }}
         run: |
@@ -332,6 +345,7 @@ jobs:
             ./wrt/.ccache
             ./wrt/staging_dir/host*
             ./wrt/staging_dir/tool*
+            ./wrt/package/openwrt-honk/.cache/cargo
 
       - name: Machine Information
         run: |
@@ -417,6 +431,7 @@ jobs:
             echo ""
             echo "内核版本：$WRT_KVER"
             echo "插件列表：$WRT_LIST"
+            echo "Honk REALITY 客户端版本标识：26.11.9（兼容性标记，不代表 Honk 使用 Xray 内核）"
           } >> "$NOTES"
 
           if [[ "$WRT_TEST" == "true" ]]; then

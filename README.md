@@ -53,7 +53,7 @@ https://drive.wrt.moe/uboot/mediatek
 - 测试工作流：`IPQ95XX-TEST` 默认仅验证并发布最终 `.config`；正式编译请用 `IPQ95XX-BE7000`。
 - 容量门禁：构建后解析 factory UBI 卷表，按 BE7000 实测 UBI 几何估算 autoresize 后 Overlay 空间；预计可用空间低于 5 MiB 时阻止发布。
 - Release：BE7000 附带 UBI 布局报告；x86_64 使用 ext4 根文件系统、1 GiB 虚拟磁盘，输出 BIOS / UEFI、QCOW2 / VMDK 镜像。两种平台的 Release 说明按目标独立生成，避免 x86_64 错误标注为 BE7000。
-- honk：本仓库两种目标当前使用 Linux 6.18，符合 kenzok8 稳定版的 Linux 6.12+ 要求。honk + Doona 资源可能增加镜像体积，BE7000 必须通过 UBI 容量门禁后才能发布；XHTTP 对具体节点的兼容性仍需实机验证。
+- honk：本仓库两种目标当前使用 Linux 6.18，符合 kenzok8 稳定版的 Linux 6.12+ 要求。CI 从固定的 Honk 源码提交构建核心，并应用 `.github/patches/honk-reality-client-version.patch`，将 REALITY 握手客户端版本标识设为 `26.11.9`，用于通过 Xray v26.7.11+ 默认 `minClientVer=26.3.27` 检查；这只是兼容性标记，不代表 Honk 使用 Xray 代码。CI 仅为当前目标架构构建（BE7000=aarch64、x86_64=x86_64），并通过本地文件源打包，避免回退到未打补丁的预编译核心。honk + Doona 资源可能增加镜像体积，BE7000 必须通过 UBI 容量门禁后才能发布；XHTTP/REALITY 仍需实机验证。
 
 固件信息里的时间为编译开始时间，便于核对上游源码提交。
 

@@ -1,7 +1,7 @@
 diff --git a/crates/honk-outbound/src/reality.rs b/crates/honk-outbound/src/reality.rs
 --- a/crates/honk-outbound/src/reality.rs
 +++ b/crates/honk-outbound/src/reality.rs
-@@ -36,6 +36,9 @@ use crate::tls::TlsStream;
+@@ -35,6 +35,9 @@ use crate::tls::TlsStream;
  const HKDF_INFO: &[u8] = b"REALITY";
  const SESSION_ID_OFFSET: usize = 39;
  const SESSION_ID_LEN: usize = 32;
@@ -11,7 +11,7 @@ diff --git a/crates/honk-outbound/src/reality.rs b/crates/honk-outbound/src/real
  
  /// Parsed REALITY handshake parameters for one node.
  #[derive(Clone, Debug)]
-@@ -195,7 +198,7 @@ fn reality_session_id(
+@@ -197,6 +200,6 @@ fn reality_session_id(
  
      let mut plain = [0u8; 16];
 -    plain[..3].copy_from_slice(&[1, 3, 3]); // client version, reality.go
@@ -19,7 +19,7 @@ diff --git a/crates/honk-outbound/src/reality.rs b/crates/honk-outbound/src/real
      plain[4..8].copy_from_slice(&timestamp.to_be_bytes());
      plain[8..].copy_from_slice(short_id);
  
-@@ -423,7 +426,7 @@ mod tests {
+@@ -422,6 +425,6 @@ mod tests {
          );
          assert_eq!(
              session_id.as_slice(),

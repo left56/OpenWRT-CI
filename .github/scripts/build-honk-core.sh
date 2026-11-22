@@ -20,6 +20,8 @@ case "${WRT_CONFIG:-}" in
 esac
 
 PATCH_SHA256=$(sha256sum "$PATCH" | awk '{print $1}')
+# Parse the unified diff before starting a cross-compile; catch malformed hunk counts early.
+git apply --numstat "$PATCH" >/dev/null
 export HONK_REALITY_PATCH="$PATCH"
 
 # The feed's Makefile consumes prebuilt binaries. Inject the patch application
